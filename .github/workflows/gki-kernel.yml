@@ -553,6 +553,12 @@ jobs:
           # Remove check_defconfig
           sed -i 's/check_defconfig//' ./common/build.config.gki
 
+          # Add Pixel 7 Exynos/Tensor modem support for SIM card and baseband
+          echo "CONFIG_ARCH_EXYNOS=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_EXYNOS_PCIE_GS=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_SEC_MODEM_S5100=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_LINK_DEVICE_PCIE=y" >> ./common/arch/arm64/configs/gki_defconfig
+
       - name: 配置内核名称
         run: |
           echo "更改为配置目录: $CONFIG..."
