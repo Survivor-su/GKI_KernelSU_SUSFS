@@ -59,14 +59,18 @@ jobs:
           fi
 
           # 获取最新成功构建的 ID
-          BUILD_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          BUILD_ID=$(curl -s -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
           "https://api.github.com/repos/$REPO/actions/workflows/$FILENAME/runs?status=success" | \
           jq -r '.workflow_runs[0].id')
-          echo 'BUILD_ID=$BUILD_ID'
+          echo "BUILD_ID=$BUILD_ID"
           # 获取该构建的 Artifacts
-          ARTIFACTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          ARTIFACTS=$(curl -s -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/$REPO/actions/runs/$BUILD_ID/artifacts")
-          echo 'ARTIFACTS=$ARTIFACTS'
+          echo "ARTIFACTS=$ARTIFACTS"
           # 获取 Manager 文件的下载链接
           if [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
             DOWNLOAD_URL=$(echo "$ARTIFACTS" | jq -r '.artifacts[] | select(.name | contains("Manager")) | .archive_download_url')
@@ -75,7 +79,10 @@ jobs:
           fi
 
           # 下载 Manager 文件
-          curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o "${{ inputs.kernelsu_variant }}-管理器(${{ env.KSU_VERSION }}).zip" "$DOWNLOAD_URL"
+          curl -L -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -o "${{ inputs.kernelsu_variant }}-管理器(${{ env.KSU_VERSION }}).zip" "$DOWNLOAD_URL"
           echo "Manager 文件已下载为：${{ inputs.kernelsu_variant }}-管理器(${{ env.KSU_VERSION }}).zip"
           unzip *.zip
 
