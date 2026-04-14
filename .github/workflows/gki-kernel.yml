@@ -53,45 +53,27 @@ on:
         required: true
         type: boolean
         default: false
-      pixel7_pcie:
-        description: '是否启用 Pixel 7 Exynos PCIe/Modem 支持?'
-        required: false
-        type: boolean
-        default: true
 jobs:
   build-kernel-kernelsu-susfs:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
       CCACHE_NOHASHDIR: "true"
       CCACHE_HARDLINK: "true"
 
     steps:
-      - name: 清理工作目录
-        run: |
-          echo "清理工作目录（self-hosted runner 会保留旧文件）..."
-          cd $GITHUB_WORKSPACE
-          rm -rf * .* 2>/dev/null || true
-          echo "工作目录已清理"
-
       - name: Maximize Build Space
-        run: |
-          echo "==> Available space before cleanup"
-          df -h
-          echo
-          echo "清理不必要的软件..."
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/.ghcup
-          sudo rm -rf /opt/hostedtoolcache/CodeQL
-          sudo docker image prune --all --force || true
-          sudo swapoff -a || true
-          sudo rm -f /mnt/swapfile || true
-          echo "... done"
-          echo
-          echo "==> Available space after cleanup"
-          df -h
+        uses: AdityaGarg8/remove-unwanted-software@v5
+        with:
+          remove-dotnet: 'true'          # Frees ~2 GB
+          remove-android: 'true'         # Frees ~9 GB
+          remove-haskell: 'true'         # Frees ~5.2 GB
+          remove-codeql: 'true'          # Frees ~5.4 GB
+          remove-docker-images: 'true'   # Frees ~3.2 GB
+          remove-large-packages: 'true'  # Frees ~3.1 GB
+          remove-swapfile: 'true'        # Frees ~4 GB
+          remove-cached-tools: 'false'   # Avoid unless confirmed safe
+          verbose: 'true'                # Enable detailed logging
           
       - name: 设定 CONFIG 环境变量
         run: |
@@ -134,19 +116,12 @@ jobs:
 
       # Step 2: Download toolchain if cache was not found
       - name: 下载工具链（如果未找到缓存）
+        if: steps.cache-toolchain.outputs.cache-hit != 'true'
         run: |
-          # 清理可能存在的旧目录（self-hosted runner 会保留工作目录）
-          rm -rf kernel-build-tools mkbootimg
-
-          if [ "${{ steps.cache-toolchain.outputs.cache-hit }}" != "true" ]; then
-            echo "Cache not hit, downloading toolchain..."
-            AOSP_MIRROR=https://android.googlesource.com
-            BRANCH=main-kernel-build-2024
-            git clone $AOSP_MIRROR/kernel/prebuilts/build-tools -b $BRANCH --depth 1 kernel-build-tools
-            git clone $AOSP_MIRROR/platform/system/tools/mkbootimg -b $BRANCH --depth 1 mkbootimg
-          else
-            echo "Cache hit, using cached toolchain"
-          fi
+          AOSP_MIRROR=https://android.googlesource.com
+          BRANCH=main-kernel-build-2024
+          git clone $AOSP_MIRROR/kernel/prebuilts/build-tools -b $BRANCH --depth 1 kernel-build-tools
+          git clone $AOSP_MIRROR/platform/system/tools/mkbootimg -b $BRANCH --depth 1 mkbootimg
 
       - name: 设置环境变量
         run: |
@@ -213,26 +188,9 @@ jobs:
             echo "Found deprecated branch: $FORMATTED_BRANCH"
             sed -i "s/\"${FORMATTED_BRANCH}\"/\"deprecated\/${FORMATTED_BRANCH}\"/g" $DEFAULT_MANIFEST_PATH
           fi
-          # Sync repo with retry
+          # Sync repo and apply patches
           $REPO --version
-          MAX_RETRIES=5
-          RETRY_COUNT=0
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            echo "Attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES..."
-            if $REPO sync -c -j$(nproc --all) --no-tags --fail-fast; then
-              echo "Repo sync succeeded!"
-              break
-            else
-              RETRY_COUNT=$((RETRY_COUNT + 1))
-              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                echo "Repo sync failed, retrying in 30 seconds..."
-                sleep 30
-              else
-                echo "Repo sync failed after $MAX_RETRIES attempts"
-                exit 1
-              fi
-            fi
-          done
+          $REPO --trace sync -c -j$(nproc --all) --no-tags --fail-fast
           echo "REMOTE_BRANCH=$REMOTE_BRANCH" >> $GITHUB_ENV
 
           FORMATTED_BRANCH="${{ inputs.android_version }}-${{ inputs.kernel_version }}"
@@ -594,18 +552,6 @@ jobs:
           
           # Remove check_defconfig
           sed -i 's/check_defconfig//' ./common/build.config.gki
-
-      - name: 添加 Pixel 7 Exynos PCIe/Modem 支持
-        if: ${{ inputs.pixel7_pcie }}
-        run: |
-          echo "更改为配置目录: $CONFIG..."
-          cd "$CONFIG"
-          CONFIG_FILE="./common/arch/arm64/configs/gki_defconfig"
-          echo "Adding Pixel 7 (Tensor G2 / Exynos) PCIe and Modem configs..."
-          echo "CONFIG_ARCH_EXYNOS=y" >> "$CONFIG_FILE"
-          echo "CONFIG_EXYNOS_PCIE_GS=y" >> "$CONFIG_FILE"
-          echo "CONFIG_SEC_MODEM_S5100=y" >> "$CONFIG_FILE"
-          echo "CONFIG_LINK_DEVICE_PCIE=y" >> "$CONFIG_FILE"
 
       - name: 配置内核名称
         run: |
