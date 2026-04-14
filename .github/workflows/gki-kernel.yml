@@ -68,7 +68,7 @@ jobs:
 
     steps:
       - name: Maximize Build Space
-        uses: AdityaGarg8/remove-unwanted-software@v6
+        uses: AdityaGarg8/remove-unwanted-software@v5
         with:
           remove-dotnet: 'true'          # Frees ~2 GB
           remove-android: 'true'         # Frees ~9 GB
@@ -78,6 +78,7 @@ jobs:
           remove-large-packages: 'true'  # Frees ~3.1 GB
           remove-swapfile: 'true'        # Frees ~4 GB
           remove-cached-tools: 'false'   # Avoid unless confirmed safe
+          remove-browsers: 'false'       # 跳过浏览器移除避免报错
           verbose: 'true'                # Enable detailed logging
           
       - name: 设定 CONFIG 环境变量
