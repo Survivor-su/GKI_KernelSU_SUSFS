@@ -68,18 +68,23 @@ jobs:
 
     steps:
       - name: Maximize Build Space
-        uses: AdityaGarg8/remove-unwanted-software@v5
-        with:
-          remove-dotnet: 'true'          # Frees ~2 GB
-          remove-android: 'true'         # Frees ~9 GB
-          remove-haskell: 'true'         # Frees ~5.2 GB
-          remove-codeql: 'true'          # Frees ~5.4 GB
-          remove-docker-images: 'true'   # Frees ~3.2 GB
-          remove-large-packages: 'true'  # Frees ~3.1 GB
-          remove-swapfile: 'true'        # Frees ~4 GB
-          remove-cached-tools: 'false'   # Avoid unless confirmed safe
-          remove-browsers: 'false'       # 跳过浏览器移除避免报错
-          verbose: 'true'                # Enable detailed logging
+        run: |
+          echo "==> Available space before cleanup"
+          df -h
+          echo
+          echo "清理不必要的软件..."
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force || true
+          sudo swapoff -a || true
+          sudo rm -f /mnt/swapfile || true
+          echo "... done"
+          echo
+          echo "==> Available space after cleanup"
+          df -h
           
       - name: 设定 CONFIG 环境变量
         run: |
