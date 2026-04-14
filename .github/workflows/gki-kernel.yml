@@ -67,6 +67,13 @@ jobs:
       CCACHE_HARDLINK: "true"
 
     steps:
+      - name: 清理工作目录
+        run: |
+          echo "清理工作目录（self-hosted runner 会保留旧文件）..."
+          cd $GITHUB_WORKSPACE
+          rm -rf * .* 2>/dev/null || true
+          echo "工作目录已清理"
+
       - name: Maximize Build Space
         run: |
           echo "==> Available space before cleanup"
@@ -127,12 +134,19 @@ jobs:
 
       # Step 2: Download toolchain if cache was not found
       - name: 下载工具链（如果未找到缓存）
-        if: steps.cache-toolchain.outputs.cache-hit != 'true'
         run: |
-          AOSP_MIRROR=https://android.googlesource.com
-          BRANCH=main-kernel-build-2024
-          git clone $AOSP_MIRROR/kernel/prebuilts/build-tools -b $BRANCH --depth 1 kernel-build-tools
-          git clone $AOSP_MIRROR/platform/system/tools/mkbootimg -b $BRANCH --depth 1 mkbootimg
+          # 清理可能存在的旧目录（self-hosted runner 会保留工作目录）
+          rm -rf kernel-build-tools mkbootimg
+
+          if [ "${{ steps.cache-toolchain.outputs.cache-hit }}" != "true" ]; then
+            echo "Cache not hit, downloading toolchain..."
+            AOSP_MIRROR=https://android.googlesource.com
+            BRANCH=main-kernel-build-2024
+            git clone $AOSP_MIRROR/kernel/prebuilts/build-tools -b $BRANCH --depth 1 kernel-build-tools
+            git clone $AOSP_MIRROR/platform/system/tools/mkbootimg -b $BRANCH --depth 1 mkbootimg
+          else
+            echo "Cache hit, using cached toolchain"
+          fi
 
       - name: 设置环境变量
         run: |
