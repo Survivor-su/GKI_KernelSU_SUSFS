@@ -37,6 +37,11 @@ on:
         required: true
         type: boolean
         default: false
+      pixel7_pcie:
+        description: '是否启用 Pixel 7 Exynos PCIe/Modem 支持?'
+        required: false
+        type: boolean
+        default: true
   
 jobs:
   build-kernel-a13-5-10-kernelsu-susfs:
@@ -79,3 +84,4 @@ jobs:
       use_kpm: ${{ inputs.use_kpm }}
       supp_op: ${{ inputs.supp_op || false }}
       BBG: ${{ inputs.BBG || false }}
+      pixel7_pcie: ${{ inputs.pixel7_pcie || false }}

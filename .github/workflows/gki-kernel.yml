@@ -53,6 +53,11 @@ on:
         required: true
         type: boolean
         default: false
+      pixel7_pcie:
+        description: '是否启用 Pixel 7 Exynos PCIe/Modem 支持?'
+        required: false
+        type: boolean
+        default: true
 jobs:
   build-kernel-kernelsu-susfs:
     runs-on: ubuntu-latest
@@ -552,6 +557,18 @@ jobs:
           
           # Remove check_defconfig
           sed -i 's/check_defconfig//' ./common/build.config.gki
+
+      - name: 添加 Pixel 7 Exynos PCIe/Modem 支持
+        if: ${{ inputs.pixel7_pcie }}
+        run: |
+          echo "更改为配置目录: $CONFIG..."
+          cd "$CONFIG"
+          CONFIG_FILE="./common/arch/arm64/configs/gki_defconfig"
+          echo "Adding Pixel 7 (Tensor G2 / Exynos) PCIe and Modem configs..."
+          echo "CONFIG_ARCH_EXYNOS=y" >> "$CONFIG_FILE"
+          echo "CONFIG_EXYNOS_PCIE_GS=y" >> "$CONFIG_FILE"
+          echo "CONFIG_SEC_MODEM_S5100=y" >> "$CONFIG_FILE"
+          echo "CONFIG_LINK_DEVICE_PCIE=y" >> "$CONFIG_FILE"
 
       - name: 配置内核名称
         run: |
