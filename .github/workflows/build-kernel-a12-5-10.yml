@@ -45,16 +45,6 @@ on:
         required: true
         type: boolean
         default: true
-      BBG:
-        description: "是否启用内核层面阻止对关键分区/设备节点的非法写入(LSM)？"
-        required: true
-        type: boolean
-        default: false
-      pixel7_pcie:
-        description: '是否启用 Pixel 7 Exynos PCIe/Modem 支持?'
-        required: true
-        type: boolean
-        default: true
       get_manager:
         description: '是否同时获取最新KSU管理器?（实验性功能，报错请关闭）'
         required: true
@@ -72,8 +62,6 @@ jobs:
       version: ${{ inputs.version }}
       use_zram: ${{ inputs.use_zram }}
       use_kpm: ${{ inputs.use_kpm }}
-      BBG: ${{ inputs.BBG || false }}
-      pixel7_pcie: ${{ inputs.pixel7_pcie || false }}
   get-ksu-manager:
     if: ${{ inputs.get_manager }}
     uses: ./.github/workflows/get-manager.yml
